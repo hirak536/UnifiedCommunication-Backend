@@ -152,10 +152,12 @@ class OutboxEvent(UUIDModel):
         verbose_name_plural = "Outbox Events"
         ordering = ["created_at"]
         indexes = [
-            # Primary worker query: pick up pending events in creation order
+            # Partial index: matches the exact worker query (fetch pending events in order).
+            # Ignores millions of dispatched rows, keeping the index tiny and memory-resident.
             models.Index(
-                fields=["status", "created_at"],
-                name="idx_outbox_status_created",
+                fields=["created_at"],
+                name="idx_outbox_pending_created",
+                condition=models.Q(status=OutboxEventStatus.PENDING),
             ),
             # Re-dispatch query: find failed events for retry
             models.Index(

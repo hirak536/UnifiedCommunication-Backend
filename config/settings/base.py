@@ -123,9 +123,10 @@ DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=600)  
 DATABASES["default"]["CONN_HEALTH_CHECKS"] = True  # Validate pooled connections before queries
 
 # ---------------------------------------------------------------------------
-# Redis / Cache (Bounded connection pool)
+# Redis / Cache (Configurable connection pool per process)
 # ---------------------------------------------------------------------------
 REDIS_URL = env("REDIS_URL")
+REDIS_POOL_MAX_CONNECTIONS = env.int("REDIS_POOL_MAX_CONNECTIONS", default=50)
 
 CACHES = {
     "default": {
@@ -134,7 +135,7 @@ CACHES = {
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {
-                "max_connections": 50,  # Prevent unbounded socket creation
+                "max_connections": REDIS_POOL_MAX_CONNECTIONS,
                 "timeout": 5,
                 "retry_on_timeout": True,
             },
@@ -142,20 +143,22 @@ CACHES = {
     }
 }
 
-# Django Channels — Lightweight Redis channel layer configuration
+# Django Channels — Redis channel layer configuration
+# Ephemeral events (presence/typing) can be dropped if the client buffer overflows;
+# persistent state relies on PostgreSQL + OutboxEvent.
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [REDIS_URL],
-            "capacity": 1500,  # Limit memory footprint of in-flight channel messages
-            "expiry": 10,      # Expire unread messages after 10s
+            "capacity": env.int("CHANNELS_CAPACITY", default=1500),
+            "expiry": env.int("CHANNELS_EXPIRY", default=10),
         },
     },
 }
 
 # ---------------------------------------------------------------------------
-# Celery (Lightweight workers with memory caps)
+# Celery (Configurable worker memory limits and task lifecycles)
 # ---------------------------------------------------------------------------
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
@@ -166,10 +169,11 @@ CELERY_TIMEZONE = "UTC"
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_ACKS_LATE = True
 
-# Worker memory & lifecycle control (prevents Python memory fragmentation/leaks)
-CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000  # Restart child worker after 1000 tasks to free RAM
-CELERY_WORKER_MAX_MEMORY_PER_CHILD = 200000  # 200MB max per worker child
-CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Fair task dispatching, avoids hoarding in single worker
+# Worker baseline controls — monitor under realistic load and adjust per deployment.
+# Media tasks (e.g. MMS/audio) should stream data rather than buffering full files in RAM.
+CELERY_WORKER_MAX_TASKS_PER_CHILD = env.int("CELERY_WORKER_MAX_TASKS_PER_CHILD", default=1000)
+CELERY_WORKER_MAX_MEMORY_PER_CHILD = env.int("CELERY_WORKER_MAX_MEMORY_PER_CHILD", default=200000)  # 200MB baseline
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 
 # ---------------------------------------------------------------------------
 # Password validation
