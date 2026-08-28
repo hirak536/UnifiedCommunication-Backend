@@ -47,6 +47,7 @@ DJANGO_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.postgres",
 ]
 
 THIRD_PARTY_APPS = [
@@ -112,15 +113,17 @@ ASGI_APPLICATION = "config.asgi.application"
 WSGI_APPLICATION = "config.wsgi.application"
 
 # ---------------------------------------------------------------------------
-# Database
+# Database (Lightweight connection reuse)
 # ---------------------------------------------------------------------------
 DATABASES = {
     "default": env.db("DATABASE_URL"),
 }
-DATABASES["default"]["ATOMIC_REQUESTS"] = True  # wrap each HTTP request in a transaction
+DATABASES["default"]["ATOMIC_REQUESTS"] = True
+DATABASES["default"]["CONN_MAX_AGE"] = env.int("DB_CONN_MAX_AGE", default=600)  # Reuse connections for 10m to minimize TCP handshake overhead
+DATABASES["default"]["CONN_HEALTH_CHECKS"] = True  # Validate pooled connections before queries
 
 # ---------------------------------------------------------------------------
-# Redis / Cache
+# Redis / Cache (Bounded connection pool)
 # ---------------------------------------------------------------------------
 REDIS_URL = env("REDIS_URL")
 
@@ -130,22 +133,29 @@ CACHES = {
         "LOCATION": REDIS_URL,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": 50,  # Prevent unbounded socket creation
+                "timeout": 5,
+                "retry_on_timeout": True,
+            },
         },
     }
 }
 
-# Django Channels — Redis channel layer
+# Django Channels — Lightweight Redis channel layer configuration
 CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
             "hosts": [REDIS_URL],
+            "capacity": 1500,  # Limit memory footprint of in-flight channel messages
+            "expiry": 10,      # Expire unread messages after 10s
         },
     },
 }
 
 # ---------------------------------------------------------------------------
-# Celery
+# Celery (Lightweight workers with memory caps)
 # ---------------------------------------------------------------------------
 CELERY_BROKER_URL = REDIS_URL
 CELERY_RESULT_BACKEND = REDIS_URL
@@ -154,7 +164,12 @@ CELERY_TASK_SERIALIZER = "json"
 CELERY_RESULT_SERIALIZER = "json"
 CELERY_TIMEZONE = "UTC"
 CELERY_TASK_TRACK_STARTED = True
-CELERY_TASK_ACKS_LATE = True  # re-queue on worker crash
+CELERY_TASK_ACKS_LATE = True
+
+# Worker memory & lifecycle control (prevents Python memory fragmentation/leaks)
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000  # Restart child worker after 1000 tasks to free RAM
+CELERY_WORKER_MAX_MEMORY_PER_CHILD = 200000  # 200MB max per worker child
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Fair task dispatching, avoids hoarding in single worker
 
 # ---------------------------------------------------------------------------
 # Password validation

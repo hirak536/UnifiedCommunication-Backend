@@ -27,6 +27,7 @@ Security invariants:
 import uuid
 
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
+from django.contrib.postgres.indexes import GinIndex
 from django.db import models
 
 from .managers import UserManager
@@ -198,6 +199,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         indexes = [
             models.Index(fields=["tenant", "role"], name="idx_user_tenant_role"),
             models.Index(fields=["tenant", "is_active"], name="idx_user_tenant_active"),
+            GinIndex(fields=["voicemail_boxes"], name="idx_user_vmboxes_gin"),
+            GinIndex(fields=["fax_boxes"], name="idx_user_faxboxes_gin"),
         ]
 
     def __str__(self) -> str:
