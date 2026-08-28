@@ -73,6 +73,7 @@ class DID(TimestampedModel):
     )
     number = models.CharField(
         max_length=20,
+        db_index=True,
         help_text=(
             "Phone number in E.164 format (e.g. '+18321234567'). "
             "Stored as provided by FreeSWITCH."

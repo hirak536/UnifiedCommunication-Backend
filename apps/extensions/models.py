@@ -169,8 +169,8 @@ class Extension(TimestampedModel):
         ]
         indexes = [
             models.Index(
-                fields=["tenant", "extension_number"],
-                name="idx_extension_tenant_number",
+                fields=["tenant", "sip_username"],
+                name="idx_ext_tenant_sipuser",
             ),
         ]
 
