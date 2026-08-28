@@ -1,0 +1,12 @@
+-r base.txt
+
+# Development / debugging
+django-extensions>=3.2,<4.0
+ipython>=8.0,<9.0
+Werkzeug>=3.0,<4.0                 # For runserver_plus SSL support
+
+# Testing
+pytest>=8.0,<9.0
+pytest-django>=4.9,<5.0
+pytest-asyncio>=0.24,<1.0
+factory-boy>=3.3,<4.0
