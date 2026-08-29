@@ -251,9 +251,20 @@ class UserUpsertSerializer(serializers.ModelSerializer):
                 if not tenant:
                     raise serializers.ValidationError({"tenant_id": f"Tenant '{raw_tenant}' not found."})
             else:
-                # If creating superadmin, tenant can be None; otherwise required
+                # If extension_id was provided for an existing extension, infer tenant from it
+                if extension_ref:
+                    raw_ext = str(extension_ref).strip()
+                    try:
+                        val_uuid = uuid.UUID(raw_ext)
+                        candidate_ext = Extension.objects.filter(Q(id=val_uuid) | Q(freeswitch_object_id=raw_ext)).first()
+                        if candidate_ext:
+                            tenant = candidate_ext.tenant
+                    except (ValueError, AttributeError):
+                        pass
+
+                # If still no tenant and role is not superadmin, require tenant_id
                 role = validated_data.get("role", UserRole.USER)
-                if role != UserRole.SUPERADMIN:
+                if not tenant and role != UserRole.SUPERADMIN:
                     raise serializers.ValidationError({"tenant_id": "tenant_id is required when creating a tenant user."})
         elif caller and caller.tenant:
             tenant = caller.tenant
