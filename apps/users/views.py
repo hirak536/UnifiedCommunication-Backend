@@ -12,6 +12,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from apps.common.permissions import IsAdminOrSuperAdmin
 from apps.common.services.secret_service import SecretService
 from apps.dids.models import DID, UserDID
 from apps.extensions.models import Extension
@@ -74,7 +75,7 @@ class UserListCreateView(generics.ListCreateAPIView):
     GET  /api/v1/users/
     POST /api/v1/users/
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_serializer_class(self):
         if self.request.method == "POST":
@@ -118,7 +119,7 @@ class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     PATCH  /api/v1/users/{id}/
     DELETE /api/v1/users/{id}/
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
     lookup_field = "id"
 
     def get_serializer_class(self):
@@ -183,7 +184,7 @@ class UserExtensionView(APIView):
     POST   /api/v1/users/{id}/extension/ — Assign extension
     DELETE /api/v1/users/{id}/extension/ — Unassign extension
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, id, *args, **kwargs):
         target_user = get_object_or_404(User, id=id)
@@ -221,7 +222,7 @@ class UserDIDView(APIView):
     POST   /api/v1/users/{id}/dids/ — Grant DID access
     DELETE /api/v1/users/{id}/dids/{did_id}/ — Revoke DID access
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, id, *args, **kwargs):
         target_user = get_object_or_404(User, id=id)
@@ -255,7 +256,7 @@ class UserFaxBoxView(APIView):
     POST   /api/v1/users/{id}/fax-boxes/ — Assign FaxBox
     DELETE /api/v1/users/{id}/fax-boxes/{fax_uuid}/ — Remove FaxBox
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, id, *args, **kwargs):
         target_user = get_object_or_404(User, id=id)
@@ -282,7 +283,7 @@ class UserVoicemailBoxView(APIView):
     POST   /api/v1/users/{id}/voicemail-boxes/ — Assign VoicemailBox
     DELETE /api/v1/users/{id}/voicemail-boxes/{box_id}/ — Remove VoicemailBox
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def post(self, request, id, *args, **kwargs):
         target_user = get_object_or_404(User, id=id)

@@ -4,7 +4,8 @@ apps/extensions/views.py
 REST API views for Extension listing and details.
 """
 
-from rest_framework import generics, permissions
+from rest_framework import generics
+from apps.common.permissions import IsAdminOrSuperAdmin
 from apps.extensions.models import Extension
 from apps.extensions.serializers import ExtensionSerializer
 
@@ -13,9 +14,10 @@ class ExtensionListView(generics.ListAPIView):
     """
     GET /api/v1/extensions/
     Lists extensions with tenant filtering, assignment status filtering, and search.
+    Restricted to superadmin and admin roles.
     """
     serializer_class = ExtensionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
         user = self.request.user
@@ -52,9 +54,10 @@ class ExtensionDetailView(generics.RetrieveAPIView):
     """
     GET /api/v1/extensions/{id}/
     Retrieves single extension details.
+    Restricted to superadmin and admin roles.
     """
     serializer_class = ExtensionSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
     lookup_field = "id"
 
     def get_queryset(self):

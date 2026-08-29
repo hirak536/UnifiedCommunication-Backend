@@ -4,7 +4,8 @@ apps/tenants/views.py
 REST API views for Tenant management.
 """
 
-from rest_framework import generics, permissions
+from rest_framework import generics
+from apps.common.permissions import IsAdminOrSuperAdmin
 from apps.tenants.models import Tenant
 from apps.tenants.serializers import TenantSerializer
 
@@ -15,7 +16,7 @@ class TenantListCreateView(generics.ListCreateAPIView):
     POST /api/v1/tenants/  — Create a new tenant
     """
     serializer_class = TenantSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
         user = self.request.user
@@ -50,7 +51,7 @@ class TenantDetailView(generics.RetrieveUpdateAPIView):
     PATCH /api/v1/tenants/{id}/ — Update tenant features or details
     """
     serializer_class = TenantSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
     lookup_field = "id"
 
     def get_queryset(self):

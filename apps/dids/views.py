@@ -4,7 +4,8 @@ apps/dids/views.py
 REST API views for DID listing and details.
 """
 
-from rest_framework import generics, permissions
+from rest_framework import generics
+from apps.common.permissions import IsAdminOrSuperAdmin
 from apps.dids.models import DID
 from apps.dids.serializers import DIDSerializer
 
@@ -13,9 +14,10 @@ class DIDListView(generics.ListAPIView):
     """
     GET /api/v1/dids/
     Lists DIDs with tenant filtering, capability filtering, and search.
+    Restricted to superadmin and admin roles.
     """
     serializer_class = DIDSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
         user = self.request.user
@@ -59,9 +61,10 @@ class DIDDetailView(generics.RetrieveAPIView):
     """
     GET /api/v1/dids/{id}/
     Retrieves single DID details.
+    Restricted to superadmin and admin roles.
     """
     serializer_class = DIDSerializer
-    permission_classes = [permissions.IsAuthenticated]
+    permission_classes = [IsAdminOrSuperAdmin]
     lookup_field = "id"
 
     def get_queryset(self):
