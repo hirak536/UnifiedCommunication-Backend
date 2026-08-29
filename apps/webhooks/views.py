@@ -83,7 +83,7 @@ class FreeSwitchWebhookView(APIView):
                 provider_timestamp = None
 
         # Helper to resolve or auto-provision Tenant
-        def resolve_or_create_tenant():
+        def resolve_or_create_tenant(auto_create=True):
             if not tenant_id:
                 return None
             t = Tenant.objects.filter(freeswitch_tenant_uuid=tenant_id).first()
@@ -94,7 +94,7 @@ class FreeSwitchWebhookView(APIView):
                     t = Tenant.objects.filter(id=tenant_id).first()
                 except Exception:
                     pass
-            if not t:
+            if not t and auto_create:
                 code = tenant_code or "TENANT"
                 name = payload.get("tenant_name") or f"{code} Tenant"
                 t = Tenant.objects.create(
@@ -136,7 +136,7 @@ class FreeSwitchWebhookView(APIView):
         # 2. extension.created / extension.updated / extension.deleted
         # ------------------------------------------------------------------
         elif event_type in ("extension.created", "extension.updated") and object_id:
-            tenant = resolve_or_create_tenant()
+            tenant = resolve_or_create_tenant(auto_create=True)
             if tenant:
                 ext = Extension.objects.filter(tenant=tenant, freeswitch_object_id=object_id).first()
 
@@ -180,16 +180,19 @@ class FreeSwitchWebhookView(APIView):
                     logger.info("Extension %s created for tenant %s", ext.extension_number, tenant.tenant_code)
 
         elif event_type == "extension.deleted" and object_id:
-            tenant = resolve_or_create_tenant()
+            tenant = resolve_or_create_tenant(auto_create=False)
             if tenant:
-                Extension.objects.filter(tenant=tenant, freeswitch_object_id=object_id).delete()
-                logger.info("Extension %s deleted for tenant %s", object_id, tenant.id)
+                count, _ = Extension.objects.filter(tenant=tenant, freeswitch_object_id=object_id).delete()
+                logger.info("Extension %s deleted for tenant %s (count=%s)", object_id, tenant.tenant_code, count)
+            else:
+                count, _ = Extension.objects.filter(freeswitch_object_id=object_id).delete()
+                logger.info("Extension %s deleted globally (count=%s)", object_id, count)
 
         # ------------------------------------------------------------------
         # 3. did.created / did.updated / did.deleted
         # ------------------------------------------------------------------
         elif event_type in ("did.created", "did.updated") and object_id:
-            tenant = resolve_or_create_tenant()
+            tenant = resolve_or_create_tenant(auto_create=True)
             if tenant:
                 did = DID.objects.filter(tenant=tenant, freeswitch_object_id=object_id).first()
                 raw_num = payload.get("number") or payload.get("phone") or payload.get("did")
@@ -215,10 +218,13 @@ class FreeSwitchWebhookView(APIView):
                     logger.info("DID %s created for tenant %s", did.number, tenant.tenant_code)
 
         elif event_type == "did.deleted" and object_id:
-            tenant = resolve_or_create_tenant()
+            tenant = resolve_or_create_tenant(auto_create=False)
             if tenant:
-                DID.objects.filter(tenant=tenant, freeswitch_object_id=object_id).delete()
-                logger.info("DID %s deleted for tenant %s", object_id, tenant.id)
+                count, _ = DID.objects.filter(tenant=tenant, freeswitch_object_id=object_id).delete()
+                logger.info("DID %s deleted for tenant %s (count=%s)", object_id, tenant.tenant_code, count)
+            else:
+                count, _ = DID.objects.filter(freeswitch_object_id=object_id).delete()
+                logger.info("DID %s deleted globally (count=%s)", object_id, count)
 
         # ------------------------------------------------------------------
         # Sanitize secrets before storing in WebhookLog
