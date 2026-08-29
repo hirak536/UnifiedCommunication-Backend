@@ -78,6 +78,22 @@ INSTALLED_APPS = LOCAL_APPS + THIRD_PARTY_APPS + DJANGO_APPS
 AUTH_USER_MODEL = "users.User"
 
 # ---------------------------------------------------------------------------
+# Password Hashers (Argon2id primary for ultra-fast ~25ms verify + OWASP #1 resistance)
+# ---------------------------------------------------------------------------
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+]
+
+AUTHENTICATION_BACKENDS = [
+    "apps.users.backends.EmailAuthBackend",
+    "django.contrib.auth.backends.ModelBackend",
+]
+
+# ---------------------------------------------------------------------------
 # Middleware
 # ---------------------------------------------------------------------------
 MIDDLEWARE = [
