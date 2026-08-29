@@ -199,6 +199,9 @@ class UserExtensionView(APIView):
                 {"detail": "Extension does not belong to the user's tenant."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        elif not target_user.tenant_id:
+            target_user.tenant = extension.tenant
+            target_user.save(update_fields=["tenant", "updated_at"])
 
         # Unassign previous extension from this user if any
         Extension.objects.filter(user=target_user).update(user=None)
@@ -233,6 +236,9 @@ class UserDIDView(APIView):
                 {"detail": "DID does not belong to the user's tenant."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
+        elif not target_user.tenant_id:
+            target_user.tenant = did.tenant
+            target_user.save(update_fields=["tenant", "updated_at"])
 
         assignment, created = UserDID.objects.get_or_create(user=target_user, did=did)
         return Response({"status": "assigned", "number": did.number, "created": created}, status=status.HTTP_200_OK)

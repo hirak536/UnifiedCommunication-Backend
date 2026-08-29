@@ -1,1439 +1,1602 @@
 {
-	"info": {
-		"_postman_id": "9b1c7f42-4321-4f12-9c76-ucbackend0001",
-		"name": "Unified Communication Backend API",
-		"description": "Comprehensive Postman collection for the Unified Communication Backend platform, covering Authentication, Multi-Tenant Management, Users, Telephony Assignments (Extension, DID, FaxBox, VoicemailBox), Communications (Calls, Voicemail, Fax, CDR), Inbound Webhooks, and Audit Logs.",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
-	},
-	"variable": [
-		{
-			"key": "baseUrl",
-			"value": "http://127.0.0.1:8000/api/v1",
-			"type": "string"
-		},
-		{
-			"key": "accessToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "refreshToken",
-			"value": "",
-			"type": "string"
-		},
-		{
-			"key": "tenantId",
-			"value": "7fae0a2e-4b21-4322-81fa-223456789abc",
-			"type": "string"
-		},
-		{
-			"key": "userId",
-			"value": "18f2f458-bf87-43c3-888a-2115f5d8e785",
-			"type": "string"
-		},
-		{
-			"key": "extensionId",
-			"value": "b34e5a6f-1234-4567-89ab-cdef01234567",
-			"type": "string"
-		},
-		{
-			"key": "didId",
-			"value": "c84e5a6f-5678-4567-89ab-cdef01234567",
-			"type": "string"
-		},
-		{
-			"key": "faxUuid",
-			"value": "978c7337-d642-4cd7-a38a-d0a61c2cfbde",
-			"type": "string"
-		},
-		{
-			"key": "voicemailBoxId",
-			"value": "1001",
-			"type": "string"
-		}
-	],
-	"item": [
-		{
-			"name": "1. Authentication",
-			"item": [
-				{
-					"name": "Login (Obtain Tokens)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData.access) {",
-									"    pm.collectionVariables.set('accessToken', jsonData.access);",
-									"}",
-									"if (jsonData.refresh) {",
-									"    pm.collectionVariables.set('refreshToken', jsonData.refresh);",
-									"}",
-									"if (jsonData.user && jsonData.user.id) {",
-									"    pm.collectionVariables.set('userId', jsonData.user.id);",
-									"}",
-									"if (jsonData.user && jsonData.user.tenant && jsonData.user.tenant.id) {",
-									"    pm.collectionVariables.set('tenantId', jsonData.user.tenant.id);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"root@tcx.com\",\n  \"password\": \"yourpassword\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/login/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"login",
-								""
-							]
-						},
-						"description": "Authenticates user and automatically stores access and refresh tokens into collection variables."
-					}
-				},
-				{
-					"name": "Refresh Access Token",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData.access) {",
-									"    pm.collectionVariables.set('accessToken', jsonData.access);",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"refresh\": \"{{refreshToken}}\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/auth/token/refresh/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"token",
-								"refresh",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Get Current User (Me)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/auth/me/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"auth",
-								"me",
-								""
-							]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "2. Tenants Management",
-			"item": [
-				{
-					"name": "List Tenants",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/tenants/?is_active=true",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"tenants",
-								""
-							],
-							"query": [
-								{
-									"key": "is_active",
-									"value": "true"
-								}
-							]
-						}
-					}
-				},
-				{
-					"name": "Create Tenant",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"freeswitch_tenant_uuid\": \"e81d4a8e-49b0-4f51-b0e6-123456789abc\",\n  \"tenant_code\": \"TCX\",\n  \"tenant_name\": \"TCX Communications\",\n  \"api_key\": \"initial_freeswitch_api_key_placeholder\",\n  \"features\": {\n    \"calling\": true,\n    \"messaging\": true,\n    \"fax\": true,\n    \"voicemail\": true\n  }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/tenants/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"tenants",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Get Tenant Detail",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/tenants/{{tenantId}}/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"tenants",
-								"{{tenantId}}",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Update Tenant Features",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"features\": {\n    \"calling\": true,\n    \"messaging\": false,\n    \"fax\": true,\n    \"voicemail\": true\n  }\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/tenants/{{tenantId}}/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"tenants",
-								"{{tenantId}}",
-								""
-							]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "3. Users Management",
-			"item": [
-				{
-					"name": "List Users",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/users/?role=user&is_active=true",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								""
-							],
-							"query": [
-								{
-									"key": "role",
-									"value": "user"
-								},
-								{
-									"key": "is_active",
-									"value": "true"
-								}
-							]
-						}
-					}
-				},
-				{
-					"name": "Create User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"email\": \"agent1@tcx.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"user\",\n  \"tenant_id\": \"{{tenantId}}\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Get User Detail",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Update User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "PATCH",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"is_active\": true\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Get SIP Credentials (Client Registration)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/sip-credentials/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								"sip-credentials",
-								""
-							]
-						},
-						"description": "Secure in-memory retrieval of SIP registration credentials for the client softphone (Electron / WebRTC)."
-					}
-				}
-			]
-		},
-		{
-			"name": "4. Telephony Resource Assignments",
-			"item": [
-				{
-					"name": "Assign Extension to User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"extension_id\": \"{{extensionId}}\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/extension/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								"extension",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Unassign Extension from User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/extension/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								"extension",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Assign DID Access to User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"did_id\": \"{{didId}}\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/dids/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								"dids",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Revoke DID Access from User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/dids/{{didId}}/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								"dids",
-								"{{didId}}",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Assign FaxBox to User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"fax_uuid\": \"{{faxUuid}}\",\n  \"fax_caller_id_name\": \"Customer Care\",\n  \"fax_caller_id_number\": \"+13468310766\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/fax-boxes/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								"fax-boxes",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Remove FaxBox from User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/fax-boxes/{{faxUuid}}/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								"fax-boxes",
-								"{{faxUuid}}",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Assign VoicemailBox to User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"voicemail_box_id\": 1001\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/voicemail-boxes/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								"voicemail-boxes",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Remove VoicemailBox from User",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "DELETE",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/users/{{userId}}/voicemail-boxes/{{voicemailBoxId}}/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"{{userId}}",
-								"voicemail-boxes",
-								"{{voicemailBoxId}}",
-								""
-							]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "5. Communication APIs",
-			"item": [
-				{
-					"name": "Calls - Originate Outbound Call",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"destination\": \"+18325550199\",\n  \"caller_id_number\": \"+13468310766\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/calls/originate/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"calls",
-								"originate",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Calls - Hangup Call",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"call_uuid\": \"3a4f6d88-1234-4567-89ab-cdef01234567\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/calls/hangup/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"calls",
-								"hangup",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Voicemail - List Messages",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/voicemail/messages/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"voicemail",
-								"messages",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Voicemail - Stream Audio",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/voicemail/messages/msg-uuid-1234/audio/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"voicemail",
-								"messages",
-								"msg-uuid-1234",
-								"audio",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Fax - Send Outbound Fax",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "formdata",
-							"formdata": [
-								{
-									"key": "fax_uuid",
-									"value": "{{faxUuid}}",
-									"type": "text"
-								},
-								{
-									"key": "destination",
-									"value": "+18325550199",
-									"type": "text"
-								},
-								{
-									"key": "document",
-									"type": "file",
-									"src": []
-								}
-							]
-						},
-						"url": {
-							"raw": "{{baseUrl}}/fax/send/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"fax",
-								"send",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Fax - List History",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/fax/history/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"fax",
-								"history",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "CDR - Query Call Detail Records",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/cdr/?start_date=2026-08-01&end_date=2026-08-29",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"cdr",
-								""
-							],
-							"query": [
-								{
-									"key": "start_date",
-									"value": "2026-08-01"
-								},
-								{
-									"key": "end_date",
-									"value": "2026-08-29"
-								}
-							]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "6. Inbound FreeSWITCH Webhooks",
-			"description": "Simulate inbound webhook calls from FreeSWITCH to Django backend.",
-			"item": [
-				{
-					"name": "Webhook - api_key.created (Sync in-memory encryption)",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "X-FreeSWITCH-Signature",
-								"value": "sha256=example_signature_token"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"api_key.created\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"api_key\": \"live_secret_freeswitch_key_12345\",\n  \"timestamp\": \"2026-08-29T10:00:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Webhook - extension.created",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"extension.created\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-ext-101-uuid\",\n  \"extension_number\": \"101\",\n  \"sip_username\": \"101-TCX\",\n  \"sip_password\": \"super_sip_secret_123\",\n  \"sip_server\": \"sip.example.com\",\n  \"transport_type\": \"TLS\",\n  \"timestamp\": \"2026-08-29T10:05:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Webhook - extension.updated",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"extension.updated\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-ext-101-uuid\",\n  \"extension_number\": \"101\",\n  \"timestamp\": \"2026-08-29T10:10:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Webhook - extension.deleted",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"extension.deleted\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-ext-101-uuid\",\n  \"timestamp\": \"2026-08-29T10:15:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Webhook - did.created",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"did.created\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-did-8321234567-uuid\",\n  \"number\": \"+18321234567\",\n  \"calling_enabled\": true,\n  \"messaging_enabled\": true,\n  \"timestamp\": \"2026-08-29T10:20:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Webhook - call.incoming",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"call.incoming\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"call_uuid\": \"c987a654-1234-4321-8765-abcdef012345\",\n  \"caller_id_number\": \"+18325550199\",\n  \"caller_id_name\": \"John Doe\",\n  \"destination\": \"+18321234567\",\n  \"timestamp\": \"2026-08-29T10:25:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Webhook - call.answered",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"call.answered\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"call_uuid\": \"c987a654-1234-4321-8765-abcdef012345\",\n  \"answered_by_extension\": \"101\",\n  \"timestamp\": \"2026-08-29T10:25:05Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Webhook - call.hangup",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"call.hangup\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"call_uuid\": \"c987a654-1234-4321-8765-abcdef012345\",\n  \"hangup_cause\": \"NORMAL_CLEARING\",\n  \"duration_seconds\": 45,\n  \"billable_seconds\": 40,\n  \"timestamp\": \"2026-08-29T10:25:50Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Webhook - voicemail.received (Resource Routing)",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"voicemail.received\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"voicemail_id\": \"1001\",\n  \"message_uuid\": \"vm-msg-uuid-9876\",\n  \"caller_id_number\": \"+18325550199\",\n  \"caller_id_name\": \"John Doe\",\n  \"audio_url\": \"https://freeswitch.example.com/audio/vm-msg-uuid-9876.wav\",\n  \"duration\": 30,\n  \"transcript\": \"Hi, this is John returning your call.\",\n  \"timestamp\": \"2026-08-29T10:30:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						},
-						"description": "Demonstrates resource-to-user routing: backend queries Users where voicemail_boxes contains 1001 and emits OutboxEvent to those users."
-					}
-				},
-				{
-					"name": "Webhook - fax.received (Resource Routing)",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"fax.received\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"fax_uuid\": \"{{faxUuid}}\",\n  \"caller_id_number\": \"+18325550199\",\n  \"caller_id_name\": \"Medical Clinic\",\n  \"pages\": 3,\n  \"document_url\": \"https://freeswitch.example.com/fax/doc-uuid-5555.pdf\",\n  \"status\": \"success\",\n  \"timestamp\": \"2026-08-29T10:35:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				},
-				{
-					"name": "Webhook - fax.sent",
-					"request": {
-						"auth": {
-							"type": "noauth"
-						},
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n  \"event\": \"fax.sent\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"fax_uuid\": \"{{faxUuid}}\",\n  \"destination\": \"+18325550199\",\n  \"pages\": 2,\n  \"status\": \"success\",\n  \"timestamp\": \"2026-08-29T10:40:00Z\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/webhooks/freeswitch/",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhooks",
-								"freeswitch",
-								""
-							]
-						}
-					}
-				}
-			]
-		},
-		{
-			"name": "7. Audit & Monitoring Logs",
-			"item": [
-				{
-					"name": "List Audit Logs",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/audit-logs/?action=user.created",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"audit-logs",
-								""
-							],
-							"query": [
-								{
-									"key": "action",
-									"value": "user.created"
-								}
-							]
-						}
-					}
-				},
-				{
-					"name": "List Webhook Logs (48h)",
-					"request": {
-						"auth": {
-							"type": "bearer",
-							"bearer": [
-								{
-									"key": "token",
-									"value": "{{accessToken}}",
-									"type": "string"
-								}
-							]
-						},
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "{{baseUrl}}/webhook-logs/?processing_status=done",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"webhook-logs",
-								""
-							],
-							"query": [
-								{
-									"key": "processing_status",
-									"value": "done"
-								}
-							]
-						}
-					}
-				}
-			]
-		}
-	]
+  "info": {
+    "_postman_id": "9b1c7f42-4321-4f12-9c76-ucbackend0001",
+    "name": "Unified Communication Backend API",
+    "description": "Comprehensive Postman collection for the Unified Communication Backend platform, covering Authentication, Multi-Tenant Management, Users, Telephony Assignments (Extension, DID, FaxBox, VoicemailBox), Communications (Calls, Voicemail, Fax, CDR), Inbound Webhooks, and Audit Logs.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "tenantId",
+      "value": "7fae0a2e-4b21-4322-81fa-223456789abc",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "18f2f458-bf87-43c3-888a-2115f5d8e785",
+      "type": "string"
+    },
+    {
+      "key": "extensionId",
+      "value": "b34e5a6f-1234-4567-89ab-cdef01234567",
+      "type": "string"
+    },
+    {
+      "key": "didId",
+      "value": "c84e5a6f-5678-4567-89ab-cdef01234567",
+      "type": "string"
+    },
+    {
+      "key": "faxUuid",
+      "value": "978c7337-d642-4cd7-a38a-d0a61c2cfbde",
+      "type": "string"
+    },
+    {
+      "key": "voicemailBoxId",
+      "value": "1001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Login (Obtain Tokens)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access) {",
+                  "    pm.collectionVariables.set('accessToken', jsonData.access);",
+                  "}",
+                  "if (jsonData.refresh) {",
+                  "    pm.collectionVariables.set('refreshToken', jsonData.refresh);",
+                  "}",
+                  "if (jsonData.user && jsonData.user.id) {",
+                  "    pm.collectionVariables.set('userId', jsonData.user.id);",
+                  "}",
+                  "if (jsonData.user && jsonData.user.tenant && jsonData.user.tenant.id) {",
+                  "    pm.collectionVariables.set('tenantId', jsonData.user.tenant.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"root@tcx.com\",\n  \"password\": \"yourpassword\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login",
+                ""
+              ]
+            },
+            "description": "Authenticates user and automatically stores access and refresh tokens into collection variables."
+          }
+        },
+        {
+          "name": "Refresh Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.access) {",
+                  "    pm.collectionVariables.set('accessToken', jsonData.access);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/token/refresh/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "token",
+                "refresh",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Current User (Me)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me",
+                ""
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Tenants Management",
+      "item": [
+        {
+          "name": "List Tenants",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tenants/?is_active=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenants",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "is_active",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Tenant",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"freeswitch_tenant_uuid\": \"e81d4a8e-49b0-4f51-b0e6-123456789abc\",\n  \"tenant_code\": \"TCX\",\n  \"tenant_name\": \"TCX Communications\",\n  \"api_key\": \"initial_freeswitch_api_key_placeholder\",\n  \"features\": {\n    \"calling\": true,\n    \"messaging\": true,\n    \"fax\": true,\n    \"voicemail\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tenants/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenants",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Tenant Detail",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/tenants/{{tenantId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenants",
+                "{{tenantId}}",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Tenant Features",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"features\": {\n    \"calling\": true,\n    \"messaging\": false,\n    \"fax\": true,\n    \"voicemail\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/tenants/{{tenantId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "tenants",
+                "{{tenantId}}",
+                ""
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Users Management",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/?role=user&is_active=true",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "user"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"agent1@tcx.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"user\",\n  \"tenant_id\": \"{{tenantId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Detail",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get SIP Credentials (Client Registration)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/sip-credentials/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "sip-credentials",
+                ""
+              ]
+            },
+            "description": "Secure in-memory retrieval of SIP registration credentials for the client softphone (Electron / WebRTC)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3.1 Telephony Resources (Extensions & DIDs)",
+      "item": [
+        {
+          "name": "List Extensions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/extensions/?tenant_id={{tenantId}}&is_assigned=false",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "extensions",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}",
+                  "description": "Filter by tenant UUID"
+                },
+                {
+                  "key": "is_assigned",
+                  "value": "false",
+                  "description": "Filter by assignment status (true/false)"
+                },
+                {
+                  "key": "search",
+                  "value": "101",
+                  "disabled": true,
+                  "description": "Search by number or SIP username"
+                }
+              ]
+            },
+            "description": "Lists extensions filtered by tenant or assignment status."
+          },
+          "response": []
+        },
+        {
+          "name": "Get Extension Detail",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/extensions/{{extensionId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "extensions",
+                "{{extensionId}}",
+                ""
+              ]
+            },
+            "description": "Retrieves single extension details."
+          },
+          "response": []
+        },
+        {
+          "name": "List DIDs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dids/?tenant_id={{tenantId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dids",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "tenant_id",
+                  "value": "{{tenantId}}",
+                  "description": "Filter by tenant UUID"
+                },
+                {
+                  "key": "calling_enabled",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "messaging_enabled",
+                  "value": "true",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "+1832",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Lists DIDs with assigned users and capabilities."
+          },
+          "response": []
+        },
+        {
+          "name": "Get DID Detail",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/dids/{{didId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "dids",
+                "{{didId}}",
+                ""
+              ]
+            },
+            "description": "Retrieves single DID details."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Telephony Resource Assignments",
+      "item": [
+        {
+          "name": "Assign Extension to User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"extension_id\": \"{{extensionId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/extension/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "extension",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unassign Extension from User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/extension/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "extension",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Assign DID Access to User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"did_id\": \"{{didId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/dids/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "dids",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Revoke DID Access from User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/dids/{{didId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "dids",
+                "{{didId}}",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Assign FaxBox to User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fax_uuid\": \"{{faxUuid}}\",\n  \"fax_caller_id_name\": \"Customer Care\",\n  \"fax_caller_id_number\": \"+13468310766\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/fax-boxes/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "fax-boxes",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove FaxBox from User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/fax-boxes/{{faxUuid}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "fax-boxes",
+                "{{faxUuid}}",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Assign VoicemailBox to User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"voicemail_box_id\": 1001\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/voicemail-boxes/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "voicemail-boxes",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Remove VoicemailBox from User",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/voicemail-boxes/{{voicemailBoxId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "voicemail-boxes",
+                "{{voicemailBoxId}}",
+                ""
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Communication APIs",
+      "item": [
+        {
+          "name": "Calls - Originate Outbound Call",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"destination\": \"+18325550199\",\n  \"caller_id_number\": \"+13468310766\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/calls/originate/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "calls",
+                "originate",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Calls - Hangup Call",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"call_uuid\": \"3a4f6d88-1234-4567-89ab-cdef01234567\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/calls/hangup/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "calls",
+                "hangup",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Voicemail - List Messages",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/voicemail/messages/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "voicemail",
+                "messages",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Voicemail - Stream Audio",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/voicemail/messages/msg-uuid-1234/audio/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "voicemail",
+                "messages",
+                "msg-uuid-1234",
+                "audio",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fax - Send Outbound Fax",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "fax_uuid",
+                  "value": "{{faxUuid}}",
+                  "type": "text"
+                },
+                {
+                  "key": "destination",
+                  "value": "+18325550199",
+                  "type": "text"
+                },
+                {
+                  "key": "document",
+                  "type": "file",
+                  "src": []
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{baseUrl}}/fax/send/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fax",
+                "send",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Fax - List History",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/fax/history/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "fax",
+                "history",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "CDR - Query Call Detail Records",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/cdr/?start_date=2026-08-01&end_date=2026-08-29",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "cdr",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2026-08-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2026-08-29"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Inbound FreeSWITCH Webhooks",
+      "description": "Simulate inbound webhook calls from FreeSWITCH to Django backend.",
+      "item": [
+        {
+          "name": "Webhook - api_key.created (Sync in-memory encryption)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-FreeSWITCH-Signature",
+                "value": "sha256=example_signature_token"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"api_key.created\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"api_key\": \"live_secret_freeswitch_key_12345\",\n  \"timestamp\": \"2026-08-29T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook - extension.created",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"extension.created\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-ext-101-uuid\",\n  \"extension_number\": \"101\",\n  \"sip_username\": \"101-TCX\",\n  \"sip_password\": \"super_sip_secret_123\",\n  \"sip_server\": \"sip.example.com\",\n  \"transport_type\": \"TLS\",\n  \"timestamp\": \"2026-08-29T10:05:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook - extension.updated",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"extension.updated\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-ext-101-uuid\",\n  \"extension_number\": \"101\",\n  \"timestamp\": \"2026-08-29T10:10:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook - extension.deleted",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"extension.deleted\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-ext-101-uuid\",\n  \"timestamp\": \"2026-08-29T10:15:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook - did.created",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"did.created\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-did-8321234567-uuid\",\n  \"number\": \"+18321234567\",\n  \"calling_enabled\": true,\n  \"messaging_enabled\": true,\n  \"timestamp\": \"2026-08-29T10:20:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook - call.incoming",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"call.incoming\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"call_uuid\": \"c987a654-1234-4321-8765-abcdef012345\",\n  \"caller_id_number\": \"+18325550199\",\n  \"caller_id_name\": \"John Doe\",\n  \"destination\": \"+18321234567\",\n  \"timestamp\": \"2026-08-29T10:25:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook - call.answered",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"call.answered\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"call_uuid\": \"c987a654-1234-4321-8765-abcdef012345\",\n  \"answered_by_extension\": \"101\",\n  \"timestamp\": \"2026-08-29T10:25:05Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook - call.hangup",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"call.hangup\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"call_uuid\": \"c987a654-1234-4321-8765-abcdef012345\",\n  \"hangup_cause\": \"NORMAL_CLEARING\",\n  \"duration_seconds\": 45,\n  \"billable_seconds\": 40,\n  \"timestamp\": \"2026-08-29T10:25:50Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook - voicemail.received (Resource Routing)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"voicemail.received\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"voicemail_id\": \"1001\",\n  \"message_uuid\": \"vm-msg-uuid-9876\",\n  \"caller_id_number\": \"+18325550199\",\n  \"caller_id_name\": \"John Doe\",\n  \"audio_url\": \"https://freeswitch.example.com/audio/vm-msg-uuid-9876.wav\",\n  \"duration\": 30,\n  \"transcript\": \"Hi, this is John returning your call.\",\n  \"timestamp\": \"2026-08-29T10:30:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            },
+            "description": "Demonstrates resource-to-user routing: backend queries Users where voicemail_boxes contains 1001 and emits OutboxEvent to those users."
+          }
+        },
+        {
+          "name": "Webhook - fax.received (Resource Routing)",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"fax.received\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"fax_uuid\": \"{{faxUuid}}\",\n  \"caller_id_number\": \"+18325550199\",\n  \"caller_id_name\": \"Medical Clinic\",\n  \"pages\": 3,\n  \"document_url\": \"https://freeswitch.example.com/fax/doc-uuid-5555.pdf\",\n  \"status\": \"success\",\n  \"timestamp\": \"2026-08-29T10:35:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        },
+        {
+          "name": "Webhook - fax.sent",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"fax.sent\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"fax_uuid\": \"{{faxUuid}}\",\n  \"destination\": \"+18325550199\",\n  \"pages\": 2,\n  \"status\": \"success\",\n  \"timestamp\": \"2026-08-29T10:40:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/webhooks/freeswitch/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhooks",
+                "freeswitch",
+                ""
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Audit & Monitoring Logs",
+      "item": [
+        {
+          "name": "List Audit Logs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/audit-logs/?action=user.created",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "audit-logs",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "action",
+                  "value": "user.created"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "List Webhook Logs (48h)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/webhook-logs/?processing_status=done",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "webhook-logs",
+                ""
+              ],
+              "query": [
+                {
+                  "key": "processing_status",
+                  "value": "done"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
 }

@@ -1,0 +1,67 @@
+"""
+apps/extensions/views.py
+────────────────────────
+REST API views for Extension listing and details.
+"""
+
+from rest_framework import generics, permissions
+from apps.extensions.models import Extension
+from apps.extensions.serializers import ExtensionSerializer
+
+
+class ExtensionListView(generics.ListAPIView):
+    """
+    GET /api/v1/extensions/
+    Lists extensions with tenant filtering, assignment status filtering, and search.
+    """
+    serializer_class = ExtensionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Extension.objects.select_related("tenant", "user").all()
+
+        # Tenant filtering
+        tenant_id = self.request.query_params.get("tenant_id")
+        if user.is_superuser or user.role == "superadmin":
+            if tenant_id:
+                qs = qs.filter(tenant_id=tenant_id)
+        else:
+            if user.tenant_id:
+                qs = qs.filter(tenant_id=user.tenant_id)
+            else:
+                qs = qs.none()
+
+        # Assignment filtering: is_assigned=true / false
+        is_assigned = self.request.query_params.get("is_assigned")
+        if is_assigned is not None:
+            if is_assigned.lower() in ("true", "1"):
+                qs = qs.filter(user__isnull=False)
+            elif is_assigned.lower() in ("false", "0"):
+                qs = qs.filter(user__isnull=True)
+
+        # Search query
+        search = self.request.query_params.get("search")
+        if search:
+            qs = qs.filter(extension_number__icontains=search) | qs.filter(sip_username__icontains=search)
+
+        return qs.order_by("extension_number")
+
+
+class ExtensionDetailView(generics.RetrieveAPIView):
+    """
+    GET /api/v1/extensions/{id}/
+    Retrieves single extension details.
+    """
+    serializer_class = ExtensionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_field = "id"
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = Extension.objects.select_related("tenant", "user").all()
+        if user.is_superuser or user.role == "superadmin":
+            return qs
+        if user.tenant_id:
+            return qs.filter(tenant_id=user.tenant_id)
+        return qs.none()

@@ -27,6 +27,10 @@ urlpatterns = [
     # 3. Users Management & Resource Assignments
     path("users/", include(user_urlpatterns)),
 
+    # Telephony Resources
+    path("extensions/", include("apps.extensions.urls")),
+    path("dids/", include("apps.dids.urls")),
+
     # 4. Calls
     path("calls/originate/", CallOriginateView.as_view(), name="calls-originate"),
     path("calls/hangup/", CallHangupView.as_view(), name="calls-hangup"),
