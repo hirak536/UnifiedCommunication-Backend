@@ -138,34 +138,46 @@ class FreeSwitchWebhookView(APIView):
         elif event_type in ("extension.created", "extension.updated") and object_id:
             tenant = resolve_or_create_tenant()
             if tenant:
-                # FreeSWITCH sends 'phone' for extension number and 'password' for SIP password
-                raw_sip_pw = payload.get("sip_password") or payload.get("password") or ""
-                encrypted_sip_pw = SecretService.encrypt(raw_sip_pw) if raw_sip_pw else ""
-                ext_number = str(payload.get("extension_number") or payload.get("phone") or object_id)
-                sip_user = payload.get("sip_username") or f"{ext_number}-{tenant.tenant_code}"
-                sip_srv = payload.get("sip_server") or payload.get("server") or "sip.example.com"
-                transport = payload.get("transport_type") or payload.get("transport") or "TLS"
+                ext = Extension.objects.filter(tenant=tenant, freeswitch_object_id=object_id).first()
 
-                defaults = {
-                    "extension_number": ext_number,
-                    "sip_username": sip_user,
-                    "sip_server": sip_srv,
-                    "transport_type": transport,
-                }
-                if encrypted_sip_pw:
-                    defaults["encrypted_sip_password"] = encrypted_sip_pw
+                raw_num = payload.get("extension_number") or payload.get("phone")
+                raw_sip_pw = payload.get("sip_password") or payload.get("password")
+                raw_sip_user = payload.get("sip_username")
+                raw_server = payload.get("sip_server") or payload.get("server")
+                raw_transport = payload.get("transport_type") or payload.get("transport")
 
-                ext, created = Extension.objects.update_or_create(
-                    tenant=tenant,
-                    freeswitch_object_id=object_id,
-                    defaults=defaults,
-                )
-                logger.info(
-                    "Extension %s synchronized for tenant %s (created=%s)",
-                    ext.extension_number,
-                    tenant.tenant_code,
-                    created,
-                )
+                if ext:
+                    # Partial update: preserve existing fields if not supplied in webhook payload
+                    if raw_num:
+                        ext.extension_number = str(raw_num)[:20]
+                    if raw_sip_user:
+                        ext.sip_username = str(raw_sip_user)
+                    if raw_server:
+                        ext.sip_server = str(raw_server)
+                    if raw_transport:
+                        ext.transport_type = str(raw_transport)
+                    if raw_sip_pw:
+                        ext.encrypted_sip_password = SecretService.encrypt(raw_sip_pw)
+                    ext.save()
+                    logger.info("Extension %s updated for tenant %s", ext.extension_number, tenant.tenant_code)
+                else:
+                    # New extension
+                    ext_num = str(raw_num)[:20] if raw_num else f"ext-{object_id[:8]}"
+                    sip_user = raw_sip_user or f"{ext_num}-{tenant.tenant_code}"
+                    sip_srv = raw_server or "sip.example.com"
+                    transport = raw_transport or "TLS"
+                    enc_pw = SecretService.encrypt(raw_sip_pw) if raw_sip_pw else ""
+
+                    ext = Extension.objects.create(
+                        tenant=tenant,
+                        freeswitch_object_id=object_id,
+                        extension_number=ext_num,
+                        sip_username=sip_user,
+                        sip_server=sip_srv,
+                        transport_type=transport,
+                        encrypted_sip_password=enc_pw,
+                    )
+                    logger.info("Extension %s created for tenant %s", ext.extension_number, tenant.tenant_code)
 
         elif event_type == "extension.deleted" and object_id:
             tenant = resolve_or_create_tenant()
@@ -179,17 +191,28 @@ class FreeSwitchWebhookView(APIView):
         elif event_type in ("did.created", "did.updated") and object_id:
             tenant = resolve_or_create_tenant()
             if tenant:
-                did_number = payload.get("number") or payload.get("phone") or payload.get("did") or ""
-                did, created = DID.objects.update_or_create(
-                    tenant=tenant,
-                    freeswitch_object_id=object_id,
-                    defaults={
-                        "number": did_number,
-                        "calling_enabled": payload.get("calling_enabled", False),
-                        "messaging_enabled": payload.get("messaging_enabled", False),
-                    },
-                )
-                logger.info("DID %s synchronized (created=%s)", did.number, created)
+                did = DID.objects.filter(tenant=tenant, freeswitch_object_id=object_id).first()
+                raw_num = payload.get("number") or payload.get("phone") or payload.get("did")
+
+                if did:
+                    if raw_num:
+                        did.number = str(raw_num)[:20]
+                    if "calling_enabled" in payload:
+                        did.calling_enabled = bool(payload["calling_enabled"])
+                    if "messaging_enabled" in payload:
+                        did.messaging_enabled = bool(payload["messaging_enabled"])
+                    did.save()
+                    logger.info("DID %s updated for tenant %s", did.number, tenant.tenant_code)
+                else:
+                    did_num = str(raw_num)[:20] if raw_num else f"did-{object_id[:8]}"
+                    did = DID.objects.create(
+                        tenant=tenant,
+                        freeswitch_object_id=object_id,
+                        number=did_num,
+                        calling_enabled=payload.get("calling_enabled", False),
+                        messaging_enabled=payload.get("messaging_enabled", False),
+                    )
+                    logger.info("DID %s created for tenant %s", did.number, tenant.tenant_code)
 
         elif event_type == "did.deleted" and object_id:
             tenant = resolve_or_create_tenant()
