@@ -1,8 +1,10 @@
 """
 config/api_urls.py
-Placeholder API URL configuration — populated in later phases.
+Main API URL routing under /api/v1/
 """
 
-from django.urls import path
+from django.urls import include, path
 
-urlpatterns: list = []
+urlpatterns = [
+    path("webhooks/", include("apps.webhooks.urls")),
+]
