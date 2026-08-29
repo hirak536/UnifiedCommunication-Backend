@@ -5,7 +5,7 @@ REST API views for Tenant management.
 """
 
 from rest_framework import generics
-from apps.common.permissions import IsAdminOrSuperAdmin
+from apps.common.permissions import IsAdminOrSuperAdmin, IsSuperAdmin
 from apps.tenants.models import Tenant
 from apps.tenants.serializers import TenantSerializer
 
@@ -14,9 +14,10 @@ class TenantListCreateView(generics.ListCreateAPIView):
     """
     GET  /api/v1/tenants/  — List all tenants
     POST /api/v1/tenants/  — Create a new tenant
+    Restricted strictly to superadmin role.
     """
     serializer_class = TenantSerializer
-    permission_classes = [IsAdminOrSuperAdmin]
+    permission_classes = [IsSuperAdmin]
 
     def get_queryset(self):
         user = self.request.user
