@@ -286,6 +286,12 @@ class UserFaxBoxView(APIView):
 
     def post(self, request, id, *args, **kwargs):
         target_user = get_object_or_404(User, id=id)
+        if not (target_user.tenant and (target_user.tenant.features or {}).get("fax", False)):
+            return Response(
+                {"detail": "Fax feature is disabled for this tenant. Cannot assign fax boxes."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         serializer = FaxBoxAssignSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 

@@ -275,6 +275,11 @@ class UserUpsertSerializer(serializers.ModelSerializer):
         elif raw_tenant:
             tenant = _resolve_tenant(raw_tenant)
 
+        # Validate feature flags
+        fax_boxes = validated_data.get("fax_boxes")
+        if fax_boxes and not (tenant and (tenant.features or {}).get("fax", False)):
+            raise serializers.ValidationError({"fax_boxes": "Fax feature is disabled for this tenant. Cannot assign fax boxes."})
+
         # Create user
         user = User.objects.create_user(
             password=raw_password,
@@ -329,11 +334,16 @@ class UserUpsertSerializer(serializers.ModelSerializer):
             if caller and (caller.is_superuser or getattr(caller, "role", "") == "superadmin"):
                 instance.tenant = _resolve_tenant(raw_tenant)
 
+        tenant = instance.tenant
+
+        # Validate feature flags
+        if "fax_boxes" in validated_data and validated_data["fax_boxes"]:
+            if not (tenant and (tenant.features or {}).get("fax", False)):
+                raise serializers.ValidationError({"fax_boxes": "Fax feature is disabled for this tenant. Cannot assign fax boxes."})
+
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
-
-        tenant = instance.tenant
 
         # Handle extension update if passed
         if has_ext:

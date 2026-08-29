@@ -1,10 +1,11 @@
 # ──────────────────────────────────────────────────────────────────────────────
-# Core framework
+# Core framework & HTTP client
 # ──────────────────────────────────────────────────────────────────────────────
 # Version policy: latest stable patch at installation time.
 # Verify on: https://pypi.org/project/Django/ and https://www.djangoproject.com/download/
 Django>=6.1,<7.0
 djangorestframework>=3.15,<4.0
+httpx>=0.27.0,<1.0
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Database

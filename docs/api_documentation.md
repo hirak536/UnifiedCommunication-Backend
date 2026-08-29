@@ -427,22 +427,67 @@ Decrypts in-memory and returns SIP credentials for softphone client registration
 
 ---
 
-## 7. Communication APIs
+## 7. Communication APIs (FreeSWITCH Client API Gateway / Proxy)
 
-### 7.1 Calls
-- **POST `/calls/originate/`**: Initiates outbound call (`{"destination": "+18325550199", "caller_id_number": "+18321234567"}`).
-- **POST `/calls/hangup/`**: Terminates active call (`{"call_uuid": "<uuid>"}`).
+The backend acts as an authenticated proxy for FreeSWITCH / Cloud PBX Client APIs.
+- Clients call the backend with their standard JWT token (`Authorization: Bearer <jwt>`).
+- The backend automatically decrypts the tenant's API key in-memory, checks feature flags (`calling`, `voicemail`, `fax`), and injects `Authorization: ApiKey <key>`.
+- Regular users are automatically scoped to their assigned `voicemail_boxes`, `fax_boxes`, and `extension`.
+- Binary media (voicemail audio WAV, fax document PDF) is streamed chunk-by-chunk directly through to the client without buffering in server RAM.
 
-### 7.2 Voicemail
-- **GET `/voicemail/messages/`**: Lists messages for caller's assigned mailbox IDs (`User.voicemail_boxes`).
-- **GET `/voicemail/messages/{message_id}/audio/`**: Streams voicemail WAV audio directly from FreeSWITCH.
+---
 
-### 7.3 Fax
-- **POST `/fax/send/`**: Sends outbound PDF fax (`multipart/form-data`: `fax_uuid`, `destination`, `document`).
-- **GET `/fax/history/`**: Lists inbound/outbound fax history for caller's assigned FaxBoxes.
+### 7.1 Voicemail Proxy
 
-### 7.4 CDR
-- **GET `/cdr/`**: Queries Call Detail Records.
+| Endpoint | Method | Description |
+|---|---|---|
+| `/voicemail/messages/` | `GET` | If no `voicemail_id`: returns mailbox summaries. If `voicemail_id`: returns paginated messages. Regular users are auto-scoped to `User.voicemail_boxes`. |
+| `/voicemail/messages/{message_uuid}/` | `GET` | Single voicemail message details. |
+| `/voicemail/messages/{message_uuid}/audio/` | `GET` | Streams voicemail audio binary (`audio/wav`) chunk-by-chunk directly to client. |
+| `/voicemail/messages/{message_uuid}/mark-read/` | `PATCH` | Updates read status (`{"read": true}`). |
+| `/voicemail/messages/{message_uuid}/` | `DELETE` | Permanently deletes voicemail message and audio file. |
+| `/voicemail/unread-counts/` | `GET` | Returns unread voicemail count grouped by mailbox ID. |
+
+---
+
+### 7.2 Fax Proxy
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/fax/boxes/` | `GET` | Lists fax boxes for tenant (scoped to assigned `User.fax_boxes` for regular users). |
+| `/fax/boxes/{fax_uuid}/` | `GET` | Single fax box detail. |
+| `/fax/files/` | `GET` | Lists inbound and outbound fax transmissions (`status=received\|sent\|pending\|failed`, `direction=inbound\|outbound`, `search`). |
+| `/fax/files/{fax_file_uuid}/` | `GET` | Single fax transmission detail. |
+| `/fax/files/{fax_file_uuid}/download/` | `GET` | Streams fax document directly as PDF (`application/pdf`). Optional `?attachment=true`. |
+| `/fax/send/` | `POST` | Queues outbound fax transmission. Multipart form-data: `fax_uuid`, `destination_number`, `file` (PDF). |
+| `/fax/files/{fax_file_uuid}/cancel/` | `POST` | Cancels active or queued outbound fax. |
+| `/fax/files/{fax_file_uuid}/` | `DELETE` | Deletes fax transmission record and PDF file. |
+
+---
+
+### 7.3 CDR & Call Analytics Proxy
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/cdr/` | `GET` | Queries call records. Supports `direction`, `start`, `end`, `hangup_cause`, `missed_call`, `status`, `search`, `number`, `extension`, `export=csv\|json`, `page`, `page_size`. |
+| `/cdr/{xml_cdr_uuid}/` | `GET` | Single call record details. |
+| `/cdr/summary/` | `GET` | Aggregate call statistics (answer rate, duration, inbound vs outbound breakdown). |
+| `/cdr/hourly-stats/` | `GET` | 24 hourly buckets in local timezone (`date`, `utc_offset`, `extension`). |
+| `/cdr/daily-summary/` | `GET` | Day-by-day inbound/outbound metrics over date window (`start`, `end`). |
+| `/cdr/top-extensions/` | `GET` | Top 10 extensions ranked by call volume (`start`, `end`). |
+| `/cdr/extension-call-summary/` | `GET` | Detailed inbound/outbound breakdown for a specific extension (`extension`, `start`, `end`). |
+| `/cdr/active-extensions/` | `GET` | Extensions with recorded activity in timeframe (`start`, `end`). |
+
+---
+
+### 7.4 Call Recordings Proxy
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/recordings/` | `GET` | Lists recorded calls with search and datetime filters. |
+| `/recordings/{recording_uuid}/` | `GET` | Metadata for a specific call recording. |
+| `/recordings/{recording_uuid}/audio/` | `GET` | Streams call audio recording (`audio/wav`) directly to the client. |
+| `/recordings/{recording_uuid}/` | `DELETE` | Deletes recording entry and on-disk audio file. |
 
 ---
 

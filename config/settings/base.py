@@ -10,6 +10,7 @@ Never commit real credentials to source control.
 
 from pathlib import Path
 
+# pyrefly: ignore [missing-import]
 import environ
 
 # ---------------------------------------------------------------------------
@@ -266,6 +267,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 # Generate with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 # SECURITY: This key must be kept secret. Rotate it only with a migration plan.
 ENCRYPTION_KEY = env("ENCRYPTION_KEY")
+
+# ---------------------------------------------------------------------------
+# FreeSWITCH / PBX Client API Gateway
+# ---------------------------------------------------------------------------
+FREESWITCH_CLIENT_API_BASE_URL = env("FREESWITCH_CLIENT_API_BASE_URL", default="https://pbx.yourdomain.com/api/v1/client")
+FREESWITCH_MASTER_KEY = env("FREESWITCH_MASTER_KEY", default="")
+FREESWITCH_API_TIMEOUT_SECONDS = env.float("FREESWITCH_API_TIMEOUT_SECONDS", default=30.0)
 
 # ---------------------------------------------------------------------------
 # Logging
