@@ -19,7 +19,7 @@ from datetime import datetime
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
-from rest_framework import status
+from rest_framework import generics, permissions, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -82,18 +82,28 @@ class FreeSwitchWebhookView(APIView):
 
         # ------------------------------------------------------------------
         # Special In-Memory Handling: api_key.created
+        # Automatically creates or updates the Tenant with encrypted API key
         # ------------------------------------------------------------------
         raw_api_key = payload.get("api_key")
         if event_type == "api_key.created" and raw_api_key and tenant_id:
             try:
                 encrypted_key = SecretService.encrypt(raw_api_key)
-                tenant = Tenant.objects.filter(freeswitch_tenant_uuid=tenant_id).first()
-                if tenant:
-                    tenant.encrypted_api_key = encrypted_key
-                    tenant.save(update_fields=["encrypted_api_key", "updated_at"])
-                    logger.info("Updated encrypted FreeSWITCH API key for tenant %s", tenant_id)
-                else:
-                    logger.warning("api_key.created received for non-existent local tenant %s", tenant_id)
+                code = tenant_code or "TENANT"
+                name = payload.get("tenant_name") or f"{code} Tenant"
+                tenant, created = Tenant.objects.update_or_create(
+                    freeswitch_tenant_uuid=tenant_id,
+                    defaults={
+                        "tenant_code": code,
+                        "tenant_name": name,
+                        "encrypted_api_key": encrypted_key,
+                        "is_active": True,
+                    },
+                )
+                logger.info(
+                    "Provisioned FreeSWITCH API key for tenant %s (created=%s)",
+                    tenant_id,
+                    created,
+                )
             except Exception as exc:
                 logger.error("Failed to encrypt/save api_key.created for tenant %s: %s", tenant_id, exc)
 
@@ -130,3 +140,33 @@ class FreeSwitchWebhookView(APIView):
             },
             status=status.HTTP_202_ACCEPTED,
         )
+
+
+class WebhookLogListView(generics.ListAPIView):
+    """
+    GET /api/v1/webhook-logs/
+    Lists temporary 48-hour webhook records.
+    """
+    permission_classes = [permissions.IsAuthenticated]
+    from apps.webhooks.serializers import WebhookLogSerializer
+    serializer_class = WebhookLogSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        qs = WebhookLog.objects.all()
+
+        status_param = self.request.query_params.get("processing_status")
+        if status_param:
+            qs = qs.filter(processing_status=status_param)
+
+        event_type = self.request.query_params.get("event_type")
+        if event_type:
+            qs = qs.filter(event_type=event_type)
+
+        if not user.is_superuser and user.role != "superadmin":
+            if user.tenant and user.tenant.freeswitch_tenant_uuid:
+                qs = qs.filter(tenant_id=str(user.tenant.freeswitch_tenant_uuid))
+            else:
+                qs = qs.none()
+
+        return qs.order_by("-received_at")

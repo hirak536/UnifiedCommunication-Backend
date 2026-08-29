@@ -94,3 +94,56 @@ class LoginSerializer(serializers.Serializer):
 
         attrs["user"] = user
         return attrs
+
+
+class UserCreateSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=True, style={"input_type": "password"})
+    tenant_id = serializers.PrimaryKeyRelatedField(
+        queryset=Tenant.objects.all(),
+        source="tenant",
+        required=False,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "email",
+            "password",
+            "role",
+            "tenant_id",
+            "is_active",
+            "created_at",
+        ]
+        read_only_fields = ["id", "created_at"]
+
+    def create(self, validated_data):
+        password = validated_data.pop("password")
+        user = User.objects.create_user(password=password, **validated_data)
+        return user
+
+
+class UserUpdateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["role", "is_active"]
+
+
+class ExtensionAssignSerializer(serializers.Serializer):
+    extension_id = serializers.UUIDField(required=True)
+
+
+class DIDAssignSerializer(serializers.Serializer):
+    did_id = serializers.UUIDField(required=True)
+
+
+class FaxBoxAssignSerializer(serializers.Serializer):
+    fax_uuid = serializers.CharField(required=True)
+    fax_caller_id_name = serializers.CharField(required=False, default="", allow_blank=True)
+    fax_caller_id_number = serializers.CharField(required=True)
+
+
+class VoicemailBoxAssignSerializer(serializers.Serializer):
+    voicemail_box_id = serializers.IntegerField(required=True, min_value=0)
+
