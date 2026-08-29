@@ -6,6 +6,7 @@ REST API views for Extension listing and details.
 
 from rest_framework import generics
 from apps.common.permissions import IsAdminOrSuperAdmin
+from apps.common.tenant_resolver import get_scoped_tenant
 from apps.extensions.models import Extension
 from apps.extensions.serializers import ExtensionSerializer
 
@@ -13,26 +14,16 @@ from apps.extensions.serializers import ExtensionSerializer
 class ExtensionListView(generics.ListAPIView):
     """
     GET /api/v1/extensions/
-    Lists extensions with tenant filtering, assignment status filtering, and search.
-    Restricted to superadmin and admin roles.
+    Lists extensions scoped to a specific tenant.
+    For superadmin: 'tenant_id' query parameter or 'X-Tenant-ID' header is required.
+    For admin: automatically scoped to the user's tenant.
     """
     serializer_class = ExtensionSerializer
     permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
-        user = self.request.user
-        qs = Extension.objects.select_related("tenant", "user").all()
-
-        # Tenant filtering
-        tenant_id = self.request.query_params.get("tenant_id")
-        if user.is_superuser or user.role == "superadmin":
-            if tenant_id:
-                qs = qs.filter(tenant_id=tenant_id)
-        else:
-            if user.tenant_id:
-                qs = qs.filter(tenant_id=user.tenant_id)
-            else:
-                qs = qs.none()
+        tenant = get_scoped_tenant(self.request)
+        qs = Extension.objects.filter(tenant=tenant).select_related("tenant", "user")
 
         # Assignment filtering: is_assigned=true / false
         is_assigned = self.request.query_params.get("is_assigned")

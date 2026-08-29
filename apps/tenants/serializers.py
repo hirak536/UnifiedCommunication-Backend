@@ -11,6 +11,9 @@ from apps.tenants.models import Tenant
 
 class TenantSerializer(serializers.ModelSerializer):
     api_key = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    extensions_count = serializers.IntegerField(source="extensions.count", read_only=True)
+    dids_count = serializers.IntegerField(source="dids.count", read_only=True)
+    users_count = serializers.IntegerField(source="users.count", read_only=True)
 
     class Meta:
         model = Tenant
@@ -22,10 +25,20 @@ class TenantSerializer(serializers.ModelSerializer):
             "api_key",
             "features",
             "is_active",
+            "extensions_count",
+            "dids_count",
+            "users_count",
             "created_at",
             "updated_at",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = [
+            "id",
+            "extensions_count",
+            "dids_count",
+            "users_count",
+            "created_at",
+            "updated_at",
+        ]
 
     def create(self, validated_data):
         raw_api_key = validated_data.pop("api_key", None)

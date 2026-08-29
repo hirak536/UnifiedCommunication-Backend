@@ -6,6 +6,7 @@ REST API views for DID listing and details.
 
 from rest_framework import generics
 from apps.common.permissions import IsAdminOrSuperAdmin
+from apps.common.tenant_resolver import get_scoped_tenant
 from apps.dids.models import DID
 from apps.dids.serializers import DIDSerializer
 
@@ -13,26 +14,16 @@ from apps.dids.serializers import DIDSerializer
 class DIDListView(generics.ListAPIView):
     """
     GET /api/v1/dids/
-    Lists DIDs with tenant filtering, capability filtering, and search.
-    Restricted to superadmin and admin roles.
+    Lists DIDs scoped to a specific tenant.
+    For superadmin: 'tenant_id' query parameter or 'X-Tenant-ID' header is required.
+    For admin: automatically scoped to the user's tenant.
     """
     serializer_class = DIDSerializer
     permission_classes = [IsAdminOrSuperAdmin]
 
     def get_queryset(self):
-        user = self.request.user
-        qs = DID.objects.select_related("tenant").prefetch_related("user_dids__user").all()
-
-        # Tenant filtering
-        tenant_id = self.request.query_params.get("tenant_id")
-        if user.is_superuser or user.role == "superadmin":
-            if tenant_id:
-                qs = qs.filter(tenant_id=tenant_id)
-        else:
-            if user.tenant_id:
-                qs = qs.filter(tenant_id=user.tenant_id)
-            else:
-                qs = qs.none()
+        tenant = get_scoped_tenant(self.request)
+        qs = DID.objects.filter(tenant=tenant).select_related("tenant").prefetch_related("user_dids__user")
 
         # Capabilities filtering
         calling = self.request.query_params.get("calling_enabled")
