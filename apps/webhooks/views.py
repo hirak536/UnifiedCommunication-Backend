@@ -138,12 +138,13 @@ class FreeSwitchWebhookView(APIView):
         elif event_type in ("extension.created", "extension.updated") and object_id:
             tenant = resolve_or_create_tenant()
             if tenant:
-                raw_sip_pw = payload.get("sip_password") or ""
+                # FreeSWITCH sends 'phone' for extension number and 'password' for SIP password
+                raw_sip_pw = payload.get("sip_password") or payload.get("password") or ""
                 encrypted_sip_pw = SecretService.encrypt(raw_sip_pw) if raw_sip_pw else ""
-                ext_number = str(payload.get("extension_number") or object_id)
+                ext_number = str(payload.get("extension_number") or payload.get("phone") or object_id)
                 sip_user = payload.get("sip_username") or f"{ext_number}-{tenant.tenant_code}"
-                sip_srv = payload.get("sip_server") or "sip.example.com"
-                transport = payload.get("transport_type") or "TLS"
+                sip_srv = payload.get("sip_server") or payload.get("server") or "sip.example.com"
+                transport = payload.get("transport_type") or payload.get("transport") or "TLS"
 
                 defaults = {
                     "extension_number": ext_number,
@@ -159,7 +160,12 @@ class FreeSwitchWebhookView(APIView):
                     freeswitch_object_id=object_id,
                     defaults=defaults,
                 )
-                logger.info("Extension %s synchronized (created=%s)", ext.extension_number, created)
+                logger.info(
+                    "Extension %s synchronized for tenant %s (created=%s)",
+                    ext.extension_number,
+                    tenant.tenant_code,
+                    created,
+                )
 
         elif event_type == "extension.deleted" and object_id:
             tenant = resolve_or_create_tenant()
@@ -173,7 +179,7 @@ class FreeSwitchWebhookView(APIView):
         elif event_type in ("did.created", "did.updated") and object_id:
             tenant = resolve_or_create_tenant()
             if tenant:
-                did_number = payload.get("number") or ""
+                did_number = payload.get("number") or payload.get("phone") or payload.get("did") or ""
                 did, created = DID.objects.update_or_create(
                     tenant=tenant,
                     freeswitch_object_id=object_id,
