@@ -275,15 +275,19 @@ The User API provides **unified, atomic endpoints**: you can create or update a 
 ### POST `/users/` — Unified User Creation
 Creates a user and atomically provisions all telephony resources in a single transaction.
 
-#### Request Body
+#### Request Body (Passing Pre-existing Resource IDs)
+Since Extensions and DIDs are already provisioned into the database via FreeSWITCH webhooks (`extension.created`, `did.created`), clients can directly pass their UUID `id`s:
+
 ```json
 {
   "email": "agent1@tcx.com",
   "password": "SecurePassword123!",
   "role": "user",
-  "tenant_id": "TCX",
-  "extension_id": "101",
-  "did_ids": ["+18321234567"],
+  "tenant_id": "faa447b0-f40c-4bcf-b651-4131f6634f27",
+  "extension_id": "3163c924-e0fd-458e-8a05-912889f428f6",
+  "did_ids": [
+    "38a784eb-e08a-441f-9e01-893b15728163"
+  ],
   "fax_boxes": [
     {
       "fax_uuid": "978c7337-d642-4cd7-a38a-d0a61c2cfbde",
@@ -295,10 +299,10 @@ Creates a user and atomically provisions all telephony resources in a single tra
 }
 ```
 
-> **Flexible Identifiers**:
-> - `tenant_id`: Accepts internal UUID, FreeSWITCH UUID, or Tenant Code (e.g. `TCX`).
-> - `extension_id`: Accepts Extension UUID or Extension Number (e.g. `101`).
-> - `did_ids`: Accepts list of DID UUIDs or phone numbers (e.g. `["+18321234567"]`).
+> **Flexible Resource Resolution & Automatic Tenant Inference**:
+> - `extension_id`: Accepts the database UUID `id` (e.g. `3163c924-e0fd-...`), FreeSWITCH object UUID, or extension number (e.g. `"101"`).
+> - `did_ids`: Accepts a list of DID database UUID `id`s, FreeSWITCH object UUIDs, or E.164 phone numbers (e.g. `["+18321234567"]`).
+> - `tenant_id`: **Optional if `extension_id` is supplied!** When creating a user with a pre-existing extension, the backend automatically infers the tenant from the extension itself.
 
 #### Response `201 Created`
 ```json
