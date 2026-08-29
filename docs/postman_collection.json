@@ -385,7 +385,7 @@
           }
         },
         {
-          "name": "Create User",
+          "name": "Create User (Unified: User + Ext + DIDs + Fax + VM)",
           "request": {
             "auth": {
               "type": "bearer",
@@ -406,7 +406,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"agent1@tcx.com\",\n  \"password\": \"SecurePass123!\",\n  \"role\": \"user\",\n  \"tenant_id\": \"{{tenantId}}\"\n}"
+              "raw": "{\n  \"email\": \"agent1@tcx.com\",\n  \"password\": \"AgentPassword123!\",\n  \"role\": \"user\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"extension_id\": \"101\",\n  \"did_ids\": [\n    \"+18321234567\"\n  ],\n  \"fax_boxes\": [\n    {\n      \"fax_uuid\": \"978c7337-d642-4cd7-a38a-d0a61c2cfbde\",\n      \"fax_caller_id_name\": \"Sales Fax\",\n      \"fax_caller_id_number\": \"+18325550123\"\n    }\n  ],\n  \"voicemail_boxes\": [\n    101,\n    1001\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/users/",
@@ -418,7 +418,8 @@
                 ""
               ]
             }
-          }
+          },
+          "description": "Unified API: Creates user and atomically assigns Extension, DIDs, FaxBoxes, and VoicemailBoxes in one call."
         },
         {
           "name": "Get User Detail",
@@ -449,7 +450,7 @@
           }
         },
         {
-          "name": "Update User",
+          "name": "Update User (Unified: User + Ext + DIDs + Fax + VM)",
           "request": {
             "auth": {
               "type": "bearer",
@@ -470,7 +471,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"is_active\": true\n}"
+              "raw": "{\n  \"role\": \"admin\",\n  \"extension_id\": \"101\",\n  \"did_ids\": [\n    \"+18321234567\"\n  ],\n  \"voicemail_boxes\": [\n    101,\n    2002\n  ]\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}/",
@@ -483,7 +484,8 @@
                 ""
               ]
             }
-          }
+          },
+          "description": "Unified API: Atomically updates user profile and/or replaces Extension, DIDs, FaxBoxes, and VoicemailBoxes in one call."
         },
         {
           "name": "Get SIP Credentials (Client Registration)",

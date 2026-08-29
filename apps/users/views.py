@@ -22,9 +22,8 @@ from apps.users.serializers import (
     ExtensionAssignSerializer,
     FaxBoxAssignSerializer,
     LoginSerializer,
-    UserCreateSerializer,
     UserDetailSerializer,
-    UserUpdateSerializer,
+    UserUpsertSerializer,
     VoicemailBoxAssignSerializer,
 )
 
@@ -72,19 +71,19 @@ class CurrentUserView(APIView):
 
 class UserListCreateView(generics.ListCreateAPIView):
     """
-    GET  /api/v1/users/
-    POST /api/v1/users/
+    GET  /api/v1/users/ — List users with tenant filtering.
+    POST /api/v1/users/ — Create user + extension + DIDs + fax + voicemail in one atomic API call.
     """
     permission_classes = [IsAdminOrSuperAdmin]
 
     def get_serializer_class(self):
         if self.request.method == "POST":
-            return UserCreateSerializer
+            return UserUpsertSerializer
         return UserDetailSerializer
 
     def get_queryset(self):
         user = self.request.user
-        qs = User.objects.all()
+        qs = User.objects.select_related("tenant", "extension").prefetch_related("user_dids__did").all()
 
         # Role filter
         role = self.request.query_params.get("role")
@@ -112,28 +111,47 @@ class UserListCreateView(generics.ListCreateAPIView):
 
         return qs.order_by("email")
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        fresh_user = User.objects.select_related("tenant", "extension").prefetch_related("user_dids__did").get(id=user.id)
+        user_data = UserDetailSerializer(fresh_user).data
+        return Response(user_data, status=status.HTTP_201_CREATED)
+
 
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     """
-    GET    /api/v1/users/{id}/
-    PATCH  /api/v1/users/{id}/
-    DELETE /api/v1/users/{id}/
+    GET    /api/v1/users/{id}/ — Retrieve full user profile with all resources.
+    PATCH  /api/v1/users/{id}/ — Update user + extension + DIDs + fax + voicemail in one atomic call.
+    DELETE /api/v1/users/{id}/ — Delete user.
     """
     permission_classes = [IsAdminOrSuperAdmin]
     lookup_field = "id"
 
     def get_serializer_class(self):
         if self.request.method in ("PATCH", "PUT"):
-            return UserUpdateSerializer
+            return UserUpsertSerializer
         return UserDetailSerializer
 
     def get_queryset(self):
         user = self.request.user
+        qs = User.objects.select_related("tenant", "extension").prefetch_related("user_dids__did").all()
         if user.is_superuser or user.role == "superadmin":
-            return User.objects.all()
+            return qs
         if user.tenant_id:
-            return User.objects.filter(tenant_id=user.tenant_id)
-        return User.objects.none()
+            return qs.filter(tenant_id=user.tenant_id)
+        return qs.none()
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop("partial", False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        fresh_user = User.objects.select_related("tenant", "extension").prefetch_related("user_dids__did").get(id=user.id)
+        user_data = UserDetailSerializer(fresh_user).data
+        return Response(user_data, status=status.HTTP_200_OK)
 
 
 class SipCredentialsView(APIView):

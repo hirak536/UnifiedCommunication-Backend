@@ -264,18 +264,115 @@ Retrieves single DID details.
 
 ---
 
-## 5. Users Management
+## 5. Users Management (Unified Provisioning & Updates)
 
 *(Restricted to `superadmin` and `admin` roles)*
+
+The User API provides **unified, atomic endpoints**: you can create or update a user profile and simultaneously assign/unassign their **Extension**, **DIDs**, **FaxBoxes**, and **VoicemailBoxes** in a **single API call**.
+
+---
+
+### POST `/users/` — Unified User Creation
+Creates a user and atomically provisions all telephony resources in a single transaction.
+
+#### Request Body
+```json
+{
+  "email": "agent1@tcx.com",
+  "password": "SecurePassword123!",
+  "role": "user",
+  "tenant_id": "TCX",
+  "extension_id": "101",
+  "did_ids": ["+18321234567"],
+  "fax_boxes": [
+    {
+      "fax_uuid": "978c7337-d642-4cd7-a38a-d0a61c2cfbde",
+      "fax_caller_id_name": "Sales Fax",
+      "fax_caller_id_number": "+18325550123"
+    }
+  ],
+  "voicemail_boxes": [101, 1001]
+}
+```
+
+> **Flexible Identifiers**:
+> - `tenant_id`: Accepts internal UUID, FreeSWITCH UUID, or Tenant Code (e.g. `TCX`).
+> - `extension_id`: Accepts Extension UUID or Extension Number (e.g. `101`).
+> - `did_ids`: Accepts list of DID UUIDs or phone numbers (e.g. `["+18321234567"]`).
+
+#### Response `201 Created`
+```json
+{
+  "id": "378289bb-2ad2-479e-b466-2ec2ae79651f",
+  "email": "agent1@tcx.com",
+  "role": "user",
+  "is_active": true,
+  "tenant": {
+    "id": "faa447b0-f40c-4bcf-b651-4131f6634f27",
+    "freeswitch_tenant_uuid": "7fae0a2e-4b21-4322-81fa-223456789abc",
+    "tenant_code": "TCX",
+    "tenant_name": "TCX Communications"
+  },
+  "features": { ... },
+  "extension": {
+    "id": "3163c924-e0fd-458e-8a05-912889f428f6",
+    "extension_number": "101",
+    "sip_username": "101-TCX",
+    "sip_server": "sip.example.com",
+    "transport_type": "TLS"
+  },
+  "dids": [
+    {
+      "id": "38a784eb-e08a-441f-9e01-893b15728163",
+      "number": "+18321234567",
+      "calling_enabled": true,
+      "messaging_enabled": true
+    }
+  ],
+  "fax_boxes": [
+    {
+      "fax_uuid": "978c7337-d642-4cd7-a38a-d0a61c2cfbde",
+      "fax_caller_id_name": "Sales Fax",
+      "fax_caller_id_number": "+18325550123"
+    }
+  ],
+  "voicemail_boxes": [101, 1001],
+  "created_at": "2026-08-29T12:20:00.000000Z"
+}
+```
+
+---
+
+### PATCH `/users/{id}/` — Unified User Update
+Atomically updates user attributes and/or updates/replaces resource assignments. Any field omitted remains unchanged.
+
+#### Request Body
+```json
+{
+  "role": "admin",
+  "extension_id": null,
+  "did_ids": ["+18321234567"],
+  "voicemail_boxes": [101, 2002]
+}
+```
+
+> **Unassigning Resources**:
+> - Pass `"extension_id": null` to unassign the current extension.
+> - Pass `"did_ids": []` to remove all assigned DIDs, or provide a new list to synchronize.
+
+#### Response `200 OK`
+Returns the updated user profile with all nested resources.
+
+---
 
 ### GET `/users/`
 Lists users. Superadmins can filter by `?tenant_id=...`; tenant admins are scoped to their own tenant.
 
-### POST `/users/`
-Creates a user with normalized lowercase email, hashed password, role, and tenant.
+### GET `/users/{id}/`
+Retrieves full user profile with all nested resources (`tenant`, `extension`, `dids`, `fax_boxes`, `voicemail_boxes`).
 
-### GET `/users/{id}/` & PATCH `/users/{id}/` & DELETE `/users/{id}/`
-Standard user profile management.
+### DELETE `/users/{id}/`
+Deletes user and unlinks all assigned resources.
 
 ### GET `/users/{id}/sip-credentials/`
 Decrypts in-memory and returns SIP credentials for softphone client registration.  
