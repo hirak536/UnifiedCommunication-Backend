@@ -219,7 +219,27 @@
                 }
               ]
             }
-          }
+          },
+          "description": "Lists all tenants with live resource counts (extensions_count, dids_count, users_count). Restricted exclusively to Superadmin.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.results && jsonData.results.length > 0) {",
+                  "    pm.environment.set(\"tenantId\", jsonData.results[0].id);",
+                  "    pm.environment.set(\"tenantCode\", jsonData.results[0].tenant_code);",
+                  "    console.log(\"Auto-saved tenantId:\", jsonData.results[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Create Tenant",
@@ -528,24 +548,45 @@
                 {
                   "key": "tenant_id",
                   "value": "{{tenantId}}",
-                  "description": "Filter by tenant UUID"
+                  "description": "Required for superadmin (can be UUID or code)",
+                  "enabled": true
                 },
                 {
                   "key": "is_assigned",
                   "value": "false",
-                  "description": "Filter by assignment status (true/false)"
+                  "description": "Filter unassigned pool (true/false)",
+                  "disabled": true
                 },
                 {
                   "key": "search",
                   "value": "101",
-                  "disabled": true,
-                  "description": "Search by number or SIP username"
+                  "description": "Search by number or SIP username",
+                  "disabled": true
                 }
               ]
             },
             "description": "Lists extensions filtered by tenant or assignment status."
           },
-          "response": []
+          "response": [],
+          "description": "Lists extensions. For superadmins, tenant_id is strictly required (?tenant_id={{tenantId}} or X-Tenant-ID: {{tenantId}}). Automatically scopes for tenant admin.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.results && jsonData.results.length > 0) {",
+                  "    pm.environment.set(\"extensionId\", jsonData.results[0].id);",
+                  "    console.log(\"Auto-saved extensionId:\", jsonData.results[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get Extension Detail",
@@ -605,7 +646,8 @@
                 {
                   "key": "tenant_id",
                   "value": "{{tenantId}}",
-                  "description": "Filter by tenant UUID"
+                  "description": "Required for superadmin (can be UUID or code)",
+                  "enabled": true
                 },
                 {
                   "key": "calling_enabled",
@@ -626,7 +668,26 @@
             },
             "description": "Lists DIDs with assigned users and capabilities."
           },
-          "response": []
+          "response": [],
+          "description": "Lists DIDs. For superadmins, tenant_id is strictly required (?tenant_id={{tenantId}} or X-Tenant-ID: {{tenantId}}). Automatically scopes for tenant admin.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 200\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.results && jsonData.results.length > 0) {",
+                  "    pm.environment.set(\"didId\", jsonData.results[0].id);",
+                  "    console.log(\"Auto-saved didId:\", jsonData.results[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get DID Detail",
@@ -1239,7 +1300,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"extension.created\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-ext-101-uuid\",\n  \"extension_number\": \"101\",\n  \"sip_username\": \"101-TCX\",\n  \"sip_password\": \"super_sip_secret_123\",\n  \"sip_server\": \"sip.example.com\",\n  \"transport_type\": \"TLS\",\n  \"timestamp\": \"2026-08-29T10:05:00Z\"\n}"
+              "raw": "{\n  \"event\": \"extension.created\",\n  \"phone\": \"101\",\n  \"password\": \"MQpAu6GGldjP8Hja\",\n  \"object_id\": \"5d3aa7aa-fc00-41c6-9d95-40483aaca43a\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"sip_username\": \"101-TCX\",\n  \"timestamp\": \"2026-08-29T10:05:00Z\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/webhooks/freeswitch/",
@@ -1269,7 +1330,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"extension.updated\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-ext-101-uuid\",\n  \"extension_number\": \"101\",\n  \"timestamp\": \"2026-08-29T10:10:00Z\"\n}"
+              "raw": "{\n  \"event\": \"extension.updated\",\n  \"object_id\": \"5d3aa7aa-fc00-41c6-9d95-40483aaca43a\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"phone\": \"101\",\n  \"password\": \"NewUpdatedSipPassword123\",\n  \"timestamp\": \"2026-08-29T10:10:00Z\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/webhooks/freeswitch/",
@@ -1299,7 +1360,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"event\": \"extension.deleted\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"object_id\": \"fs-ext-101-uuid\",\n  \"timestamp\": \"2026-08-29T10:15:00Z\"\n}"
+              "raw": "{\n  \"event\": \"extension.deleted\",\n  \"object_id\": \"5d3aa7aa-fc00-41c6-9d95-40483aaca43a\",\n  \"tenant_id\": \"{{tenantId}}\",\n  \"tenant_code\": \"TCX\",\n  \"timestamp\": \"2026-08-29T10:15:00Z\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/webhooks/freeswitch/",
