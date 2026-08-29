@@ -101,18 +101,22 @@ class LoginSerializer(serializers.Serializer):
         email = attrs.get("email", "").strip().lower()
         password = attrs.get("password")
 
-        user = authenticate(
-            request=self.context.get("request"),
-            username=email,
-            password=password,
-        )
-
+        # 1. Check if user exists
+        user = User.objects.select_related("tenant", "extension").filter(email=email).first()
         if not user:
             raise serializers.ValidationError(
-                {"detail": "No active account found with the given credentials."},
+                {"detail": "No account with this email found."},
                 code="authorization",
             )
 
+        # 2. Check if password is correct
+        if not user.check_password(password):
+            raise serializers.ValidationError(
+                {"detail": "Invalid password."},
+                code="authorization",
+            )
+
+        # 3. Check if user is active
         if not user.is_active:
             raise serializers.ValidationError(
                 {"detail": "This user account is disabled."},
