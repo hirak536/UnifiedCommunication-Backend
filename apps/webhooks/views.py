@@ -25,6 +25,8 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.common.services.secret_service import SecretService
+from apps.dids.models import DID
+from apps.extensions.models import Extension
 from apps.tenants.models import Tenant
 from apps.webhooks.models import ProcessingStatus, WebhookLog
 
@@ -80,9 +82,32 @@ class FreeSwitchWebhookView(APIView):
             except Exception:
                 provider_timestamp = None
 
+        # Helper to resolve or auto-provision Tenant
+        def resolve_or_create_tenant():
+            if not tenant_id:
+                return None
+            t = Tenant.objects.filter(freeswitch_tenant_uuid=tenant_id).first()
+            if not t and tenant_code:
+                t = Tenant.objects.filter(tenant_code=tenant_code).first()
+            if not t:
+                try:
+                    t = Tenant.objects.filter(id=tenant_id).first()
+                except Exception:
+                    pass
+            if not t:
+                code = tenant_code or "TENANT"
+                name = payload.get("tenant_name") or f"{code} Tenant"
+                t = Tenant.objects.create(
+                    freeswitch_tenant_uuid=tenant_id,
+                    tenant_code=code,
+                    tenant_name=name,
+                    encrypted_api_key="",
+                    is_active=True,
+                )
+            return t
+
         # ------------------------------------------------------------------
-        # Special In-Memory Handling: api_key.created
-        # Automatically creates or updates the Tenant with encrypted API key
+        # 1. api_key.created: Synchronous in-memory encryption & provisioning
         # ------------------------------------------------------------------
         raw_api_key = payload.get("api_key")
         if event_type == "api_key.created" and raw_api_key and tenant_id:
@@ -106,6 +131,65 @@ class FreeSwitchWebhookView(APIView):
                 )
             except Exception as exc:
                 logger.error("Failed to encrypt/save api_key.created for tenant %s: %s", tenant_id, exc)
+
+        # ------------------------------------------------------------------
+        # 2. extension.created / extension.updated / extension.deleted
+        # ------------------------------------------------------------------
+        elif event_type in ("extension.created", "extension.updated") and object_id:
+            tenant = resolve_or_create_tenant()
+            if tenant:
+                raw_sip_pw = payload.get("sip_password") or ""
+                encrypted_sip_pw = SecretService.encrypt(raw_sip_pw) if raw_sip_pw else ""
+                ext_number = str(payload.get("extension_number") or object_id)
+                sip_user = payload.get("sip_username") or f"{ext_number}-{tenant.tenant_code}"
+                sip_srv = payload.get("sip_server") or "sip.example.com"
+                transport = payload.get("transport_type") or "TLS"
+
+                defaults = {
+                    "extension_number": ext_number,
+                    "sip_username": sip_user,
+                    "sip_server": sip_srv,
+                    "transport_type": transport,
+                }
+                if encrypted_sip_pw:
+                    defaults["encrypted_sip_password"] = encrypted_sip_pw
+
+                ext, created = Extension.objects.update_or_create(
+                    tenant=tenant,
+                    freeswitch_object_id=object_id,
+                    defaults=defaults,
+                )
+                logger.info("Extension %s synchronized (created=%s)", ext.extension_number, created)
+
+        elif event_type == "extension.deleted" and object_id:
+            tenant = resolve_or_create_tenant()
+            if tenant:
+                Extension.objects.filter(tenant=tenant, freeswitch_object_id=object_id).delete()
+                logger.info("Extension %s deleted for tenant %s", object_id, tenant.id)
+
+        # ------------------------------------------------------------------
+        # 3. did.created / did.updated / did.deleted
+        # ------------------------------------------------------------------
+        elif event_type in ("did.created", "did.updated") and object_id:
+            tenant = resolve_or_create_tenant()
+            if tenant:
+                did_number = payload.get("number") or ""
+                did, created = DID.objects.update_or_create(
+                    tenant=tenant,
+                    freeswitch_object_id=object_id,
+                    defaults={
+                        "number": did_number,
+                        "calling_enabled": payload.get("calling_enabled", False),
+                        "messaging_enabled": payload.get("messaging_enabled", False),
+                    },
+                )
+                logger.info("DID %s synchronized (created=%s)", did.number, created)
+
+        elif event_type == "did.deleted" and object_id:
+            tenant = resolve_or_create_tenant()
+            if tenant:
+                DID.objects.filter(tenant=tenant, freeswitch_object_id=object_id).delete()
+                logger.info("DID %s deleted for tenant %s", object_id, tenant.id)
 
         # ------------------------------------------------------------------
         # Sanitize secrets before storing in WebhookLog
