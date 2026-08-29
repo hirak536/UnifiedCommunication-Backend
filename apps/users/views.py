@@ -212,6 +212,14 @@ class UserExtensionView(APIView):
         ext_id = serializer.validated_data["extension_id"]
         extension = get_object_or_404(Extension, id=ext_id)
 
+        # Ensure calling feature is enabled for tenant
+        tenant = target_user.tenant or extension.tenant
+        if not (tenant.features or {}).get("calling", False):
+            return Response(
+                {"detail": "Calling feature is disabled for this tenant. Cannot assign extension."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
         # Ensure extension belongs to same tenant
         if target_user.tenant_id and extension.tenant_id != target_user.tenant_id:
             return Response(

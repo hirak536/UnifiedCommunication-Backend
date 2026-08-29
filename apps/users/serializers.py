@@ -289,6 +289,8 @@ class UserUpsertSerializer(serializers.ModelSerializer):
             else:
                 if not tenant:
                     raise serializers.ValidationError({"extension_id": "Cannot assign extension without a tenant."})
+                if not (tenant.features or {}).get("calling", False):
+                    raise serializers.ValidationError({"extension_id": "Calling feature is disabled for this tenant. Cannot assign extension."})
                 ext = _resolve_extension(extension_ref, tenant)
                 if not ext:
                     raise serializers.ValidationError({"extension_id": f"Extension '{extension_ref}' not found in tenant."})
@@ -340,6 +342,8 @@ class UserUpsertSerializer(serializers.ModelSerializer):
             else:
                 if not tenant:
                     raise serializers.ValidationError({"extension_id": "User has no tenant assigned."})
+                if not (tenant.features or {}).get("calling", False):
+                    raise serializers.ValidationError({"extension_id": "Calling feature is disabled for this tenant. Cannot assign extension."})
                 ext = _resolve_extension(extension_ref, tenant)
                 if not ext:
                     raise serializers.ValidationError({"extension_id": f"Extension '{extension_ref}' not found in tenant."})
