@@ -62,22 +62,27 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
+                  "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "var jsonData = pm.response.json();",
                   "if (jsonData.access) {",
-                  "    pm.collectionVariables.set('accessToken', jsonData.access);",
+                  "    pm.environment.set(\"accessToken\", jsonData.access);",
+                  "    pm.collectionVariables.set(\"accessToken\", jsonData.access);",
                   "}",
                   "if (jsonData.refresh) {",
-                  "    pm.collectionVariables.set('refreshToken', jsonData.refresh);",
+                  "    pm.environment.set(\"refreshToken\", jsonData.refresh);",
+                  "    pm.collectionVariables.set(\"refreshToken\", jsonData.refresh);",
                   "}",
                   "if (jsonData.user && jsonData.user.id) {",
-                  "    pm.collectionVariables.set('userId', jsonData.user.id);",
+                  "    pm.environment.set(\"userId\", jsonData.user.id);",
+                  "    pm.collectionVariables.set(\"userId\", jsonData.user.id);",
                   "}",
                   "if (jsonData.user && jsonData.user.tenant && jsonData.user.tenant.id) {",
-                  "    pm.collectionVariables.set('tenantId', jsonData.user.tenant.id);",
+                  "    pm.environment.set(\"tenantId\", jsonData.user.tenant.id);",
+                  "    pm.collectionVariables.set(\"tenantId\", jsonData.user.tenant.id);",
                   "}"
-                ],
-                "type": "text/javascript"
+                ]
               }
             }
           ],
@@ -116,13 +121,15 @@
             {
               "listen": "test",
               "script": {
+                "type": "text/javascript",
                 "exec": [
+                  "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
                   "var jsonData = pm.response.json();",
                   "if (jsonData.access) {",
-                  "    pm.collectionVariables.set('accessToken', jsonData.access);",
+                  "    pm.environment.set(\"accessToken\", jsonData.access);",
+                  "    pm.collectionVariables.set(\"accessToken\", jsonData.access);",
                   "}"
-                ],
-                "type": "text/javascript"
+                ]
               }
             }
           ],
@@ -419,7 +426,24 @@
               ]
             }
           },
-          "description": "Unified API: Creates user and atomically assigns Extension, DIDs, FaxBoxes, and VoicemailBoxes in one call."
+          "description": "Unified API: Creates user and atomically assigns Extension, DIDs, FaxBoxes, and VoicemailBoxes in one call.",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.id) {",
+                  "    pm.environment.set(\"userId\", jsonData.id);",
+                  "    pm.collectionVariables.set(\"userId\", jsonData.id);",
+                  "    console.log(\"Auto-saved created userId:\", jsonData.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get User Detail",
@@ -516,6 +540,31 @@
             },
             "description": "Secure in-memory retrieval of SIP registration credentials for the client softphone (Electron / WebRTC)."
           }
+        },
+        {
+          "name": "Delete User",
+          "description": "Permanently deletes the user and safely unassigns all attached extensions, DIDs, and boxes.",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                ""
+              ]
+            }
+          },
+          "response": []
         }
       ]
     },
